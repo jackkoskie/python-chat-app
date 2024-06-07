@@ -1,177 +1,194 @@
-from google.cloud.firestore_v1.base_query import FieldFilter
 from rich.panel import Panel
 from console import console
 from rich import print
-from messages import user, setUser
+from messages import setUser
 from firestore import db
 from argon2 import PasswordHasher
 import os
-from messages import getUser, messages
+from messages import getUser, getRoom
 from time import time
 import select
 import sys
 
 screenSize = 20
 
-clear = lambda: os.system('cls' if os.name == 'nt' else 'clear')
+
+def clear(): return os.system('cls' if os.name == 'nt' else 'clear')
+
 
 ph = PasswordHasher()
 
-colours = ['grey37', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'dark_magenta']
+colours = ['grey37', 'red', 'green', 'yellow',
+           'blue', 'magenta', 'cyan', 'dark_magenta']
+
 
 def nickColour(nickname):
-  if nickname == 'SYSTEM':
-    return 'SYSTEM'
+    if nickname == 'SYSTEM':
+        return 'SYSTEM'
 
-  value = 0
-  for char in nickname:
-    value += ord(char)
+    value = 0
+    for char in nickname:
+        value += ord(char)
 
-  return f'[{colours[value % len(colours)]}]{nickname}[/]'
+    return f'[{colours[value % len(colours)]}]{nickname}[/]'
+
 
 def generateMessageWindow(messages):
-  data = []
+    data = []
 
-  for message in messages[-screenSize:]:
-    if message['author'] == 'SYSTEM':
-      data.append(f'[italic]{message["text"]}[/]')
-    else:
-      data.append(f"{nickColour(message['author'])}: {message['text']}")
+    for message in messages[-screenSize:]:
+        if message['author'] == 'SYSTEM':
+            data.append(f'[italic]{message["text"]}[/]')
+        else:
+            data.append(f"{nickColour(message['author'])}: {message['text']}")
 
-  if len(messages) < screenSize:
-    for _ in range(screenSize - len(messages)):
-      data.append("")
+    if len(messages) < screenSize:
+        for _ in range(screenSize - len(messages)):
+            data.append("")
 
-  return Panel('\n'.join(data), title=f"[italic red]My Chat App[/]")
+    return Panel('\n'.join(data), title=f"[italic red]My Chat App[/] - {getRoom()}")
 
 
 def clear_line(n=1):
-  LINE_UP = '\033[1A'
-  LINE_CLEAR = '\x1b[2K'
-  for _ in range(n):
-    print(LINE_UP, end=LINE_CLEAR)
+    LINE_UP = '\033[1A'
+    LINE_CLEAR = '\x1b[2K'
+    for _ in range(n):
+        print(LINE_UP, end=LINE_CLEAR)
 
 
 def login():
-  print(
-      Panel(
-          f"""This is a chatroom style chat app allowing you to stay connected with your friends.
+    print(
+        Panel(
+            """This is a chatroom style chat app allowing you to stay connected with your friends.
 
-Please enter a nickname to sign in / sign up.""",
-          title=f"Welcome to [italic red]My Chat App[/]!"))
+  Please enter a nickname to sign in / sign up.""",
+            title="Welcome to [italic red]My Chat App[/]!"))
 
-  nickname = input('Nickname: ').lower()
+    nickname = input('Nickname: ').lower()
 
-  if db.collection('users').document(nickname).get().exists:
-    incorrect = False
-    while True:
-      clear()
-      print(
-          Panel(f"""Welcome back, {nickColour(nickname)}!
+    if db.collection('users').document(nickname).get().exists:
+        incorrect = False
+        while True:
+            clear()
+            print(
+                Panel(f"""Welcome back, {nickColour(nickname)}!
 
-Please enter your password...""",
-                title=f"Welcome back, {nickColour(nickname)}!"))
+      Please enter your password...""",
+                      title=f"Welcome back, {nickColour(nickname)}!"))
 
-      if incorrect:
-        print("[red]Incorrect password.[/] Please try again")
-      else:
-        print()
-      password = console.input("Password: ")
-      
-      try:
-        ph.verify(
-            db.collection('users').document(nickname).get().to_dict()
-            ['password'], password)
-        setUser(nickname)
-        print("Log in successful!")
-        input("Press ENTER to continue...")
-        break
-      except:
-        incorrect = True
-        continue
-  else:
-    incorrect = False
-    while True:
-      clear()
-      print(
-          Panel(f"""Welcome, {nickColour(nickname)}!
+            if incorrect:
+                print("[red]Incorrect password.[/] Please try again")
+            else:
+                print()
+            password = console.input("Password: ")
 
-Please chose a password...""",
-                title=f"Welcome, {nickColour(nickname)}!"))
-      if incorrect:
-        print("[red]Passwords do not match.[/] Please try again")
-      else:
-        print()
-      password = console.input("Password: ")
-      password2 = console.input("Confirm password: ")
+            try:
+                ph.verify(
+                    db.collection('users').document(nickname).get().to_dict()
+                    ['password'], password)
 
-      if password == password2:
-        db.collection('users').document(nickname).create(
-            {"password": ph.hash(password)})
-        setUser(nickname)
-        print("Sign up successful!")
-        input("Press ENTER to continue...")
-        break
-      else:
-        incorrect = True
-        continue
+                # salt = os.urandom(32)
+                # hashedPassword = hashlib
+
+                setUser(nickname)
+                print("Log in successful!")
+                input("Press ENTER to continue...")
+                break
+            except:
+                incorrect = True
+                continue
+    else:
+        incorrect = False
+        while True:
+            clear()
+            print(
+                Panel(f"""Welcome, {nickColour(nickname)}!
+
+      Please chose a password...""",
+                      title=f"Welcome, {nickColour(nickname)}!"))
+            if incorrect:
+                print("[red]Passwords do not match.[/] Please try again")
+            else:
+                print()
+            password = console.input("Password: ")
+            password2 = console.input("Confirm password: ")
+
+            if password == password2:
+                db.collection('users').document(nickname).create(
+                    {"password": ph.hash(password)})
+                setUser(nickname)
+                print("Sign up successful!")
+                input("Press ENTER to continue...")
+                break
+            else:
+                incorrect = True
+                continue
 
 
 def addMessage(message, room, messages):
-  for line in message[1].splitlines():
-    if message[0] == getUser():
-      db.collection('messages').add(document_data={"author": getUser(), "text": line, "timestamp": int(time()), 'room': room})
-    messages.append({'author': nickColour(message[0]), 'text': line})
-  clear()
-  console.print(generateMessageWindow(messages))
+    for line in message[1].splitlines():
+        if message[0] == getUser():
+            db.collection('messages').add(document_data={
+                "author": getUser(), "text": line, "timestamp": int(time()), 'room': room})
+        messages.append({'author': nickColour(message[0]), 'text': line})
+    clear()
+    console.print(generateMessageWindow(messages))
+
 
 class _Getch:
-  """Gets a single character from standard input.  Does not echo to the
-screen."""
-  def __init__(self):
-      try:
-          self.impl = _GetchWindows()
-      except ImportError:
-          self.impl = _GetchUnix()
+    """Gets a single character from standard input.  Does not echo to the
+  screen."""
 
-  def __call__(self): return self.impl()
+    def __init__(self):
+        try:
+            self.impl = _GetchWindows()
+        except ImportError:
+            self.impl = _GetchUnix()
+
+    def __call__(self): return self.impl()
 
 
 class _GetchUnix:
-  def __init__(self):
-      import tty, sys
+    def __init__(self):
+        import tty
+        import sys
 
-  def __call__(self):
-      import sys, tty, termios
-      fd = sys.stdin.fileno()
-      old_settings = termios.tcgetattr(fd)
-      try:
-          tty.setraw(sys.stdin.fileno())
-          ch = sys.stdin.read(1)
-      finally:
-          termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-      return ch
+    def __call__(self):
+        import sys
+        import tty
+        import termios
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(sys.stdin.fileno())
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
 
 
 class _GetchWindows:
-  def __init__(self):
-      import msvcrt
+    def __init__(self):
+        import msvcrt
 
-  def __call__(self):
-      import msvcrt
-      return msvcrt.getch()
+    def __call__(self):
+        import msvcrt
+        return msvcrt.getch()
 
 
 getch = _Getch()
 
+
 def check_key():
-  return sys.stdin in select.select([sys.stdin], [], [], 0)[0]
+    return sys.stdin in select.select([sys.stdin], [], [], 0)[0]
+
 
 def showCommandResult(message):
-  console.print('\n', message)
-  input('Press ENTER to continue...')
-  clear()
-  console.print(generateMessageWindow(list(map(lambda x: x.to_dict(), db.collection('messages').order_by('timestamp').get()))))
+    console.print('\n', message)
+    input('Press ENTER to continue...')
+    clear()
+    console.print(generateMessageWindow(list(map(
+        lambda x: x.to_dict(), db.collection('messages').order_by('timestamp').get()))))
 
 # import os
 
