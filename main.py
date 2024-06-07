@@ -19,8 +19,8 @@ login()
 def processMessage(message):
     if message.startswith('/'):
         if len(list(filter(lambda x: x.name == message.split(' ')[0][1:], commands))) != 1:
-            showCommandResult(f"[red]Unknown command: {
-                              message.split(' ')[0]}[/]")
+            unknownCommand = message.split(' ')[0]
+            showCommandResult(f"[red]Unknown command:{unknownCommand}[/]")
             return False
         else:
             list(filter(lambda x: x.name == message.split(' ')[0][1:], commands))[
