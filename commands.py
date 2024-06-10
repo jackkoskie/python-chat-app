@@ -53,6 +53,6 @@ def runRoom(args):
 commands = [
     Command('help', 'Shows this help page.', runHelp),
     Command('exit', 'Exits the program.', runExit),
-    Command('room', 'Display the current room or set join a new room.',
+    Command('room', 'Display the current room. Add room name to move to a new room',
             runRoom, '[room name]')
 ]
