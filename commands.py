@@ -30,7 +30,8 @@ def runHelp(args):
                 '[i]Run [b blue]/help \[command name][/] to get more information about a command.[/]\n']
 
         for command in commands:
-            data.append(f'[b blue]/{command.name}[/] - {command.description}')
+            data.append(
+                f'[b blue]/{command.name} \\{command.args}[/] - {command.description}')
 
         data.append('\n')
         # return addMessage(('SYSTEM', '\n'.join(data)), messages)

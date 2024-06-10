@@ -46,7 +46,7 @@ def generateMessageWindow(messages):
         for _ in range(screenSize - len(messages)):
             data.append("")
 
-    return Panel('\n'.join(data), title=f"[italic red]My Chat App[/] - {getRoom()}")
+    return Panel('\n'.join(data), title=f"[italic red]Costell-O-Gram[/] - {getRoom()}")
 
 
 def clear_line(n=1):
@@ -62,9 +62,9 @@ def login():
             """This is a chatroom style chat app allowing you to stay connected with your friends.
 
   Please enter a nickname to sign in / sign up.""",
-            title="Welcome to [italic red]My Chat App[/]!"))
+            title="Welcome to [italic red]Costell-O-Gram[/]!"))
 
-    nickname = input('Nickname: ').lower()
+    nickname = console.input('Nickname: ').lower()
 
     if db.collection('users').document(nickname).get().exists:
         incorrect = False
@@ -87,13 +87,10 @@ def login():
                     db.collection('users').document(nickname).get().to_dict()
                     ['password'], password)
 
-                # salt = os.urandom(32)
-                # hashedPassword = hashlib
-
                 setUser(nickname)
                 print("Log in successful!")
-                input("Press ENTER to continue...")
-                break
+                console.input("Press ENTER to continue...")
+                return False
             except:
                 incorrect = True
                 continue
@@ -118,8 +115,8 @@ def login():
                     {"password": ph.hash(password)})
                 setUser(nickname)
                 print("Sign up successful!")
-                input("Press ENTER to continue...")
-                break
+                console.input("Press ENTER to continue...")
+                return True
             else:
                 incorrect = True
                 continue
@@ -185,7 +182,7 @@ def check_key():
 
 def showCommandResult(message):
     console.print('\n', message)
-    input('Press ENTER to continue...')
+    console.input('Press ENTER to continue...')
     clear()
     console.print(generateMessageWindow(list(map(
         lambda x: x.to_dict(), db.collection('messages').order_by('timestamp').get()))))
