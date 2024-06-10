@@ -31,7 +31,7 @@ def processMessage(message):
 
 
 messageData = []
-
+startup = True
 
 while True:
     while True:
@@ -39,12 +39,13 @@ while True:
             messageData = list(map(lambda x: x.to_dict(), db.collection(
                 'messages').where(filter=FieldFilter('room', '==', getRoom())).order_by('timestamp').get()))
 
-        if messages != messageData:
+        if messages != messageData or startup:
             clear()
             console.print(generateMessageWindow(messageData))
             console.print(f"{nickColour(getUser())}: ", end='')
             messages = messageData.copy()
             lastUpdateTime = int(time.time())
+            startup = False
         if check_key():
             break
     response = console.input()
